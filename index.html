@@ -4,47 +4,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Visitor Selfie Camera</title>
+<title>Visitor Entry Form</title>
 
 <style>
+* { box-sizing: border-box; }
+
 body {
   font-family: Arial, sans-serif;
   background: #f2f4f7;
-  padding: 20px;
+  padding: 15px;
   margin: 0;
 }
 .container {
   max-width: 450px;
-  margin: 20px auto;
+  margin: 15px auto;
   padding: 22px;
   background: white;
   border-radius: 14px;
-  text-align: center;
 }
-h2 { color: #1769aa; }
-video, canvas, img {
+h2 {
+  text-align: center;
+  color: #1769aa;
+}
+input, button {
   width: 100%;
-  border-radius: 10px;
-  margin-top: 12px;
+  padding: 14px;
+  margin: 9px 0;
+  border-radius: 7px;
+  font-size: 16px;
+}
+input {
+  border: 1px solid #ccc;
 }
 button {
-  width: 100%;
-  padding: 15px;
-  margin-top: 12px;
   border: 0;
-  border-radius: 8px;
   background: #1769aa;
   color: white;
-  font-size: 16px;
   font-weight: bold;
 }
 button:disabled {
   background: #999;
 }
+video, canvas, img {
+  width: 100%;
+  border-radius: 10px;
+  margin-top: 10px;
+}
 #preview { display: none; }
 #status {
+  text-align: center;
   font-weight: bold;
-  margin-top: 15px;
 }
 </style>
 </head>
@@ -52,8 +61,24 @@ button:disabled {
 <body>
 <div class="container">
 
-<h2>Visitor Selfie Capture</h2>
-<p>Allow camera access to take your live selfie.</p>
+<h2>Visitor Entry Form</h2>
+
+<form id="visitorForm">
+
+<input id="name" placeholder="Visitor Name *" required>
+
+<input id="mobile" type="tel"
+placeholder="Mobile Number *" required>
+
+<input id="company" placeholder="Company Name">
+
+<input id="person" placeholder="Person to Meet">
+
+<input id="purpose" placeholder="Purpose of Visit">
+
+<input id="vehicle" placeholder="Vehicle Number">
+
+<h3>Visitor Selfie *</h3>
 
 <video id="video" autoplay playsinline></video>
 
@@ -61,23 +86,37 @@ button:disabled {
 
 <img id="preview" alt="Selfie preview">
 
-<button id="openBtn" onclick="openCamera()">
-  Open Front Camera
+<button type="button" id="openBtn" onclick="openCamera()">
+Open Front Camera
 </button>
 
-<button id="captureBtn" onclick="capturePhoto()" disabled>
-  Capture Selfie
+<button type="button" id="captureBtn"
+onclick="capturePhoto()" disabled>
+Capture Selfie
 </button>
 
-<button id="retakeBtn" onclick="retakePhoto()" style="display:none">
-  Retake Selfie
+<button type="button" id="retakeBtn"
+onclick="retakePhoto()" style="display:none">
+Retake Selfie
 </button>
 
-<p id="status">Camera not started</p>
+<p id="photoStatus">Selfie not captured</p>
+
+<button type="submit" id="submitBtn">
+Submit Visitor Entry
+</button>
+
+</form>
+
+<p id="status"></p>
 
 </div>
 
 <script>
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbzW443QnmTWJBkE08Lui662Z0PxiiKjQOdN23Q6Rn1fphX1nAiyLqLSedAR5EudCct4/exec";
+
 let cameraStream = null;
 let selfieImage = null;
 
@@ -85,49 +124,50 @@ async function openCamera() {
   try {
     if (!navigator.mediaDevices ||
         !navigator.mediaDevices.getUserMedia) {
-      throw new Error("Camera API unavailable. Open the HTTPS webpage in Chrome.");
+      throw new Error("Camera is not supported in this browser.");
     }
 
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: "user"
+        facingMode: { ideal: "user" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
       },
       audio: false
     });
 
     const video = document.getElementById("video");
     video.srcObject = cameraStream;
-
     await video.play();
 
     document.getElementById("captureBtn").disabled = false;
-    document.getElementById("status").innerText =
-      "Camera is ready. Take your selfie.";
-
     document.getElementById("openBtn").disabled = true;
+    document.getElementById("status").innerText =
+      "Camera ready. Capture your selfie.";
 
   } catch (error) {
-    document.getElementById("status").innerText =
-      "Camera error: " + error.name + " - " + error.message;
+    alert("Camera error: " + error.message);
   }
 }
 
 function capturePhoto() {
   const video = document.getElementById("video");
-  const canvas = document.getElementById("canvas");
 
   if (!cameraStream || !video.videoWidth) {
-    alert("Please open the camera first.");
+    alert("Please open camera first.");
     return;
   }
+
+  const canvas = document.getElementById("canvas");
 
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
-  const context = canvas.getContext("2d");
-  context.drawImage(video, 0, 0);
+  canvas.getContext("2d").drawImage(
+    video, 0, 0, canvas.width, canvas.height
+  );
 
-  selfieImage = canvas.toDataURL("image/jpeg", 0.85);
+  selfieImage = canvas.toDataURL("image/jpeg", 0.75);
 
   document.getElementById("preview").src = selfieImage;
   document.getElementById("preview").style.display = "block";
@@ -138,7 +178,8 @@ function capturePhoto() {
 
   document.getElementById("captureBtn").style.display = "none";
   document.getElementById("retakeBtn").style.display = "block";
-  document.getElementById("status").innerText =
+
+  document.getElementById("photoStatus").innerText =
     "Selfie captured successfully!";
 }
 
@@ -153,12 +194,66 @@ function retakePhoto() {
   document.getElementById("retakeBtn").style.display = "none";
   document.getElementById("openBtn").disabled = false;
 
-  document.getElementById("status").innerText =
-    "Open camera to take another selfie.";
+  document.getElementById("photoStatus").innerText =
+    "Selfie not captured";
 
   openCamera();
 }
-</script>
 
+document.getElementById("visitorForm")
+.addEventListener("submit", async function(e) {
+
+  e.preventDefault();
+
+  if (!selfieImage) {
+    alert("Please capture visitor selfie first.");
+    return;
+  }
+
+  const data = {
+    name: document.getElementById("name").value.trim(),
+    mobile: document.getElementById("mobile").value.trim(),
+    company: document.getElementById("company").value.trim(),
+    person: document.getElementById("person").value.trim(),
+    purpose: document.getElementById("purpose").value.trim(),
+    vehicle: document.getElementById("vehicle").value.trim(),
+    photo: selfieImage
+  };
+
+  const btn = document.getElementById("submitBtn");
+  const status = document.getElementById("status");
+
+  btn.disabled = true;
+  btn.innerText = "Submitting...";
+  status.innerText = "Sending visitor entry...";
+
+  try {
+
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(data)
+    });
+
+    status.innerText =
+      "Request sent. Please verify visitor entry in Google Sheets.";
+
+    // Keep form and photo until the save is verified.
+    btn.disabled = false;
+    btn.innerText = "Submit Visitor Entry";
+
+  } catch (error) {
+
+    status.innerText = "Network error: " + error.message;
+    btn.disabled = false;
+    btn.innerText = "Submit Visitor Entry";
+
+  }
+});
+
+</script>
 </body>
 </html>
