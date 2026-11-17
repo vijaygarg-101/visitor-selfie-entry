@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visitor Selfie Camera</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f4f7;
+  padding: 20px;
+  margin: 0;
+}
+.container {
+  max-width: 450px;
+  margin: 20px auto;
+  padding: 22px;
+  background: white;
+  border-radius: 14px;
+  text-align: center;
+}
+h2 { color: #1769aa; }
+video, canvas, img {
+  width: 100%;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #1769aa;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+button:disabled {
+  background: #999;
+}
+#preview { display: none; }
+#status {
+  font-weight: bold;
+  margin-top: 15px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>Visitor Selfie Capture</h2>
+<p>Allow camera access to take your live selfie.</p>
+
+<video id="video" autoplay playsinline></video>
+
+<canvas id="canvas" style="display:none"></canvas>
+
+<img id="preview" alt="Selfie preview">
+
+<button id="openBtn" onclick="openCamera()">
+  Open Front Camera
+</button>
+
+<button id="captureBtn" onclick="capturePhoto()" disabled>
+  Capture Selfie
+</button>
+
+<button id="retakeBtn" onclick="retakePhoto()" style="display:none">
+  Retake Selfie
+</button>
+
+<p id="status">Camera not started</p>
+
+</div>
+
+<script>
+let cameraStream = null;
+let selfieImage = null;
+
+async function openCamera() {
+  try {
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Camera API unavailable. Open the HTTPS webpage in Chrome.");
+    }
+
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user"
+      },
+      audio: false
+    });
+
+    const video = document.getElementById("video");
+    video.srcObject = cameraStream;
+
+    await video.play();
+
+    document.getElementById("captureBtn").disabled = false;
+    document.getElementById("status").innerText =
+      "Camera is ready. Take your selfie.";
+
+    document.getElementById("openBtn").disabled = true;
+
+  } catch (error) {
+    document.getElementById("status").innerText =
+      "Camera error: " + error.name + " - " + error.message;
+  }
+}
+
+function capturePhoto() {
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+
+  if (!cameraStream || !video.videoWidth) {
+    alert("Please open the camera first.");
+    return;
+  }
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const context = canvas.getContext("2d");
+  context.drawImage(video, 0, 0);
+
+  selfieImage = canvas.toDataURL("image/jpeg", 0.85);
+
+  document.getElementById("preview").src = selfieImage;
+  document.getElementById("preview").style.display = "block";
+  video.style.display = "none";
+
+  cameraStream.getTracks().forEach(track => track.stop());
+  cameraStream = null;
+
+  document.getElementById("captureBtn").style.display = "none";
+  document.getElementById("retakeBtn").style.display = "block";
+  document.getElementById("status").innerText =
+    "Selfie captured successfully!";
+}
+
+function retakePhoto() {
+  selfieImage = null;
+
+  document.getElementById("preview").style.display = "none";
+  document.getElementById("video").style.display = "block";
+
+  document.getElementById("captureBtn").style.display = "block";
+  document.getElementById("captureBtn").disabled = true;
+  document.getElementById("retakeBtn").style.display = "none";
+  document.getElementById("openBtn").disabled = false;
+
+  document.getElementById("status").innerText =
+    "Open camera to take another selfie.";
+
+  openCamera();
+}
+</script>
+
+</body>
+</html>
